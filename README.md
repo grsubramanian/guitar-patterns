@@ -1,5 +1,16 @@
 # Chord and scale shapes for any uniformly fretted instrument
 
+For diagrams that look like this:
+
+```
+|----|-R--|----|----|
+|----|-5--|----|----|
+|----|----|-3--|----|
+|----|----|----|-R--|
+|-3--|----|----|-5--|
+|----|-R--|----|----|
+```
+
 ## Building
 
 `go build -o bin/ cmd/main.go`
