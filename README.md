@@ -1,4 +1,4 @@
-# Chord and scale shapes for any uniformly fretted instrument
+# Tool to generate chord and scale shapes for any uniformly fretted instrument for any musical system
 
 ## Building
 
