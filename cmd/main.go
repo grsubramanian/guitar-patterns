@@ -40,6 +40,106 @@ func (s *stringslice) Set(value string) error {
     return nil
 }
 
+type note struct {
+    stepsAwayFromRootNote uint
+}
+
+func newNote(stepsAwayFromRootNote uint) *note {
+    return &note{stepsAwayFromRootNote: stepsAwayFromRootNote}
+}
+
+type gStringPattern struct {
+    notes []*note
+}
+
+func newGStringPattern() *gStringPattern {
+    return &gStringPattern{notes: make([]*note, 0)}
+}
+
+func (gsp *gStringPattern) add(n *note) {
+    gsp.notes = append(gsp.notes, n)
+}
+
+type pattern struct {
+    gStringPatterns []*gStringPattern
+}
+
+func newPattern() *pattern {
+    return &pattern{gStringPatterns: make([]*gStringPattern, 0)}
+}
+
+func (p *pattern) add(gsp *gStringPattern) {
+    p.gStringPatterns = append(p.gStringPatterns, gsp)
+}
+
+type patternPrinter interface {
+    pprint(*pattern)
+}
+
+type asciiPatternPrinter struct {
+    paddedNoteRepresentations stringslice
+    emptyNoteRepresentation string
+}
+
+func newAsciiPatternPrinter(noteRepresentations stringslice) *asciiPatternPrinter {
+    pf := &asciiPatternPrinter{}
+    paddedNoteRepresentations := getPadded(noteRepresentations)
+    emptyNoteRepresentation := strings.Repeat("-", len(paddedNoteRepresentations[0]))
+    pf.paddedNoteRepresentations = paddedNoteRepresentations
+    pf.emptyNoteRepresentation = emptyNoteRepresentation
+    return pf
+}
+
+func getPadded(noteRepresentations stringslice) stringslice {
+
+    maxNoteLen := 0
+    for _, noteRepresentation := range noteRepresentations {
+        noteRepresentationLen := len(noteRepresentation)
+        if noteRepresentationLen > maxNoteLen {
+            maxNoteLen = noteRepresentationLen
+        }
+    }
+
+    out := make(stringslice, 0)
+    for _, noteRepresentation := range noteRepresentations {
+        noteRepresentationLen := len(noteRepresentation)
+        var paddedNoteRepresentation string
+        if noteRepresentationLen == maxNoteLen {
+            paddedNoteRepresentation = noteRepresentation
+        } else {
+            leftPadding := (maxNoteLen - noteRepresentationLen) / 2
+            rightPadding := maxNoteLen - noteRepresentationLen - leftPadding
+            paddedNoteRepresentation = strings.Repeat("-", leftPadding) + noteRepresentation + strings.Repeat("-", rightPadding) 
+        }
+        out = append(out, paddedNoteRepresentation)
+    }
+    return out
+}
+
+func (apf asciiPatternPrinter) pprint(p *pattern) {
+
+    var sb strings.Builder
+
+    // print out the highest frequency string first.
+    for i := len(p.gStringPatterns) - 1; i >= 0; i-- {
+        gStringPattern := p.gStringPatterns[i]
+        sb.WriteString("|")
+        for _, note := range gStringPattern.notes {
+           sb.WriteString("-")
+           if note != nil {
+               sb.WriteString(apf.paddedNoteRepresentations[note.stepsAwayFromRootNote])
+           } else {
+               sb.WriteString(apf.emptyNoteRepresentation)
+           }
+           sb.WriteString("-|")
+        }
+        if i > 0 {
+            sb.WriteString("\n")
+        }
+    }
+    fmt.Printf("%s\n\n", sb.String())
+}
+
 func cumSum(arr uintslice) uintslice {
     out := make(uintslice, 0)
     out = append(out, 0)
@@ -100,32 +200,6 @@ func reversed(arr stringslice) stringslice {
     return arr
 }
 
-func getPadded(noteRepresentations stringslice) stringslice {
-
-    maxNoteLen := 0
-    for _, noteRepresentation := range noteRepresentations {
-        noteRepresentationLen := len(noteRepresentation)
-        if noteRepresentationLen > maxNoteLen {
-            maxNoteLen = noteRepresentationLen
-        }
-    }
-
-    out := make(stringslice, 0)
-    for _, noteRepresentation := range noteRepresentations {
-        noteRepresentationLen := len(noteRepresentation)
-        var paddedNoteRepresentation string
-        if noteRepresentationLen == maxNoteLen {
-            paddedNoteRepresentation = noteRepresentation
-        } else {
-            leftPadding := (maxNoteLen - noteRepresentationLen) / 2
-            rightPadding := maxNoteLen - noteRepresentationLen - leftPadding
-            paddedNoteRepresentation = strings.Repeat("-", leftPadding) + noteRepresentation + strings.Repeat("-", rightPadding) 
-        }
-        out = append(out, paddedNoteRepresentation)
-    }
-    return out
-}
-
 var noteRepresentations stringslice
 var defaultNoteRepresentations = stringslice{"1", "b2", "2", "b3", "3", "4", "#4", "5", "b6", "6", "b7", "7"}
 
@@ -150,9 +224,7 @@ func main() {
     if len(noteRepresentations) == 0 {
         noteRepresentations = defaultNoteRepresentations
     }
-    paddedNoteRepresentations := getPadded(noteRepresentations)
-    emptyNoteRepresentation := strings.Repeat("-", len(paddedNoteRepresentations[0]))
-    numNotes := len(paddedNoteRepresentations)
+    numNotes := len(noteRepresentations)
 
     if len(stepsBetweenConsecutiveGStrings) == 0 {
         stepsBetweenConsecutiveGStrings = defaultStepsBetweenConsecutiveGStrings
@@ -168,35 +240,32 @@ func main() {
     sort.Sort(sequenceNotes)
     sequenceNotes = unique(sequenceNotes)
 
+    pf := newAsciiPatternPrinter(noteRepresentations)
+
     for _, sequenceNoteOnLowestFrequencyGString := range sequenceNotes {
         // fret on top string, but 1-indexed to avoid uint underflow.
         for referenceFretNumOnLowestFrequencyGString_1 := numFretsPerPattern; referenceFretNumOnLowestFrequencyGString_1 >= 1; referenceFretNumOnLowestFrequencyGString_1-- {
             referenceFretNumOnLowestFrequencyGString := referenceFretNumOnLowestFrequencyGString_1 - 1
-            gStringPatterns := make([]string, 0)
-            for gStringNum := 0; gStringNum < numGStrings; gStringNum++ {
-                var sb strings.Builder
-                sb.WriteString("|")
 
-                // The following two nested for loops can in theory be optimized wrt runtime complexity,
-                // but it's not worth it.
+            pattern := newPattern()
+            for gStringNum := 0; gStringNum < numGStrings; gStringNum++ {
+                gStringPattern := newGStringPattern()
+
                 for fretNumOnCurrentString := uint(0); fretNumOnCurrentString < numFretsPerPattern; fretNumOnCurrentString++ {
                     stepsAwayFromRootNote := (int(stepsAwayFromLowestFrequencyGString[gStringNum] + fretNumOnCurrentString + sequenceNoteOnLowestFrequencyGString) - int(referenceFretNumOnLowestFrequencyGString)) % numNotes
                     if stepsAwayFromRootNote < 0 {
                         stepsAwayFromRootNote = numNotes + stepsAwayFromRootNote
                     }
                     
-                    sb.WriteString("-")
                     if search(sequenceNotes, uint(stepsAwayFromRootNote)) >= 0 {
-                        sb.WriteString(paddedNoteRepresentations[stepsAwayFromRootNote])
+                        gStringPattern.add(newNote(uint(stepsAwayFromRootNote)))
                     } else {
-                        sb.WriteString(emptyNoteRepresentation)    
+                        gStringPattern.add(nil)
                     }
-                    sb.WriteString("-|")
                 }
-                gStringPatterns = append(gStringPatterns, sb.String())
+                pattern.add(gStringPattern)
             }
-            gStringPatterns = reversed(gStringPatterns)
-            fmt.Printf("%s\n\n", strings.Join(gStringPatterns, "\n"))
+            pf.pprint(pattern)
         }
     }
 }
