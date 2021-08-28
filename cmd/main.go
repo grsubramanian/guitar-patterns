@@ -271,6 +271,13 @@ func cumSumMod(arr uintslice, maxVal uint) uintslice {
     return out
 }
 
+func addMod(arr uintslice, toAdd uint, maxVal uint) {
+    for i, _ := range arr {
+        arr[i] += toAdd 
+        arr[i] %= maxVal
+    }
+}
+
 func unique(arr uintslice) uintslice {
     if len(arr) == 0 {
         return arr
@@ -316,16 +323,20 @@ var defaultStepsBetweenConsecutiveGStrings = uintslice{5, 5, 5, 4, 5}
 
 var stepsBetweenConsecutiveNotesInSequence uintslice
 
+var aliasedRoot uint
+
 var numFretsPerPattern uint
 
 func main() {
 
-    flag.Var(&noteRepresentations, "n", "the textual representations of the notes as an ordered list of strings, starting from the representation of the root note. equals " + fmt.Sprintf("%v", defaultNoteRepresentations) + " if not specified.") 
+    flag.Var(&noteRepresentations, "n", "the textual representations of the notes as an ordered list of strings, starting from the representation of the un-aliased (i.e. absolute) root note. equals " + fmt.Sprintf("%v", defaultNoteRepresentations) + " if not specified.") 
     
     flag.Var(&stepsBetweenConsecutiveGStrings, "ss", "the tuning represented as an ordered list of non-negative integers. each value represents the step jump from previous frequency string. first value represents jump from the lowest frequency string. equals " + fmt.Sprintf("%v", defaultStepsBetweenConsecutiveGStrings) + " if not specified.")
     
-    flag.Var(&stepsBetweenConsecutiveNotesInSequence, "s", "each value represents the step jumps from the previous note in the sequence (chord or scale). first value represents jump from the root note. must specify explicitly.")
+    flag.Var(&stepsBetweenConsecutiveNotesInSequence, "s", "each value represents the step jumps from the previous note in the sequence (chord or scale). first value represents jump from the aliased root note. must specify explicitly.")
     
+    flag.UintVar(&aliasedRoot, "r", uint(0), "the number of steps away from the absolute root to treat as the temporary root. by default, there is no aliasing.")
+
     flag.UintVar(&numFretsPerPattern, "frets", uint(4), "the number of frets per pattern")
     flag.Parse()
 
@@ -333,6 +344,7 @@ func main() {
         noteRepresentations = defaultNoteRepresentations
     }
     numNotes := len(noteRepresentations)
+    aliasedRoot = aliasedRoot % uint(numNotes)
 
     if len(stepsBetweenConsecutiveGStrings) == 0 {
         stepsBetweenConsecutiveGStrings = defaultStepsBetweenConsecutiveGStrings
@@ -347,20 +359,21 @@ func main() {
     sequenceNotes := cumSumMod(stepsBetweenConsecutiveNotesInSequence, uint(numNotes))
     sort.Sort(sequenceNotes)
     sequenceNotes = unique(sequenceNotes)
+    addMod(sequenceNotes, aliasedRoot, uint(numNotes))
 
     pf := newAsciiPatternPrinter(noteRepresentations)
 
     var lastAcceptedPattern *pattern = nil
     
     for referenceFretOffset := 0; referenceFretOffset < numNotes; referenceFretOffset++ {
-        rootNoteFretNumOnLowestFrequencyGString := int(numFretsPerPattern) - 1 - referenceFretOffset
+        referenceNoteFretNumOnLowestFrequencyGString := int(numFretsPerPattern) - 1 - referenceFretOffset
 
         pattern := newPattern()
         for gStringNum := 0; gStringNum < numGStrings; gStringNum++ {
             gStringPattern := newGStringPattern()
 
             for fretNumOnCurrentString := uint(0); fretNumOnCurrentString < numFretsPerPattern; fretNumOnCurrentString++ {
-                stepsAwayFromRootNote := (int(stepsAwayFromLowestFrequencyGString[gStringNum] + fretNumOnCurrentString) - rootNoteFretNumOnLowestFrequencyGString) % numNotes
+                stepsAwayFromRootNote := (int(stepsAwayFromLowestFrequencyGString[gStringNum] + fretNumOnCurrentString + sequenceNotes[0]) - referenceNoteFretNumOnLowestFrequencyGString) % numNotes
                 if stepsAwayFromRootNote < 0 {
                     stepsAwayFromRootNote = numNotes + stepsAwayFromRootNote
                 }
