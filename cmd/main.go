@@ -181,21 +181,24 @@ func (p *pattern) subPatternOf(other *pattern) bool {
 }
 
 type patternPrinter interface {
-    pprint(*pattern)
+    accept(*pattern)
+    pprint()
+    reset()
 }
 
 type asciiPatternPrinter struct {
     paddedNoteRepresentations stringslice
     emptyNoteRepresentation string
+    asciiStringBuilder strings.Builder
 }
 
-func newAsciiPatternPrinter(noteRepresentations stringslice) *asciiPatternPrinter {
-    pf := &asciiPatternPrinter{}
+func newAsciiPatternPrinter(noteRepresentations stringslice) patternPrinter {
+    pp := &asciiPatternPrinter{}
     paddedNoteRepresentations := getPadded(noteRepresentations)
     emptyNoteRepresentation := strings.Repeat("-", len(paddedNoteRepresentations[0]))
-    pf.paddedNoteRepresentations = paddedNoteRepresentations
-    pf.emptyNoteRepresentation = emptyNoteRepresentation
-    return pf
+    pp.paddedNoteRepresentations = paddedNoteRepresentations
+    pp.emptyNoteRepresentation = emptyNoteRepresentation
+    return pp
 }
 
 func getPadded(noteRepresentations stringslice) stringslice {
@@ -224,28 +227,107 @@ func getPadded(noteRepresentations stringslice) stringslice {
     return out
 }
 
-func (apf asciiPatternPrinter) pprint(p *pattern) {
-
-    var sb strings.Builder
+func (app *asciiPatternPrinter) accept(p *pattern) {
 
     // print out the highest frequency string first.
     for i := len(p.gStringPatterns) - 1; i >= 0; i-- {
         gStringPattern := p.gStringPatterns[i]
-        sb.WriteString("|")
+        app.asciiStringBuilder.WriteString("|")
         for _, note := range gStringPattern.notes {
-           sb.WriteString("-")
+           app.asciiStringBuilder.WriteString("-")
            if note != nil {
-               sb.WriteString(apf.paddedNoteRepresentations[note.stepsAwayFromRootNote])
+               app.asciiStringBuilder.WriteString(app.paddedNoteRepresentations[note.stepsAwayFromRootNote])
            } else {
-               sb.WriteString(apf.emptyNoteRepresentation)
+               app.asciiStringBuilder.WriteString(app.emptyNoteRepresentation)
            }
-           sb.WriteString("-|")
+           app.asciiStringBuilder.WriteString("-|")
         }
         if i > 0 {
-            sb.WriteString("\n")
+            app.asciiStringBuilder.WriteString("\n")
         }
     }
-    fmt.Printf("%s\n\n", sb.String())
+    app.asciiStringBuilder.WriteString("\n\n")
+}
+
+func (app *asciiPatternPrinter) pprint() {
+    fmt.Printf("%s", app.asciiStringBuilder.String())
+}
+
+func (app *asciiPatternPrinter) reset() {
+    app.asciiStringBuilder.Reset() 
+}
+
+type svgPatternPrinter struct {
+    noteRepresentations stringslice
+    maxFretsInPattern uint
+    svgStringBuilder strings.Builder
+    numPatterns uint
+    numGStringGaps uint
+}
+
+func newSvgPatternPrinter(noteRepresentations stringslice, maxFretsInPattern uint) patternPrinter {
+    return &svgPatternPrinter{noteRepresentations: noteRepresentations, maxFretsInPattern: maxFretsInPattern} 
+}
+
+func (spp *svgPatternPrinter) accept(p *pattern) {
+
+    // Lay out the gstrings.
+    numGStringsInPattern := len(p.gStringPatterns)
+    for i1 := numGStringsInPattern; i1 >= 1; i1-- {
+        x1 := uint(10)
+        y1 := (spp.numPatterns + 1) * uint(20) + (spp.numGStringGaps + uint(numGStringsInPattern - i1)) * uint(10)
+        x2 := x1 + spp.maxFretsInPattern * uint(15)
+        y2 := y1
+        spp.svgStringBuilder.WriteString(fmt.Sprintf("  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" style=\"stroke:rgb(190,190,190);stroke-width:1\"/>\n", x1, y1, x2, y2))
+    }
+
+    // Lay out the frets.
+    for f := uint(0); f <= spp.maxFretsInPattern; f++ {
+        var width uint
+        if f == uint(0) || f == spp.maxFretsInPattern {
+            width = uint(3)
+        } else {
+            width = uint(2)
+        }
+
+        x1 := uint(10) + f * uint(15)
+        y1 := (spp.numPatterns + 1) * uint(20) + spp.numGStringGaps * uint(10)
+        x2 := x1
+        y2 := y1 + uint(numGStringsInPattern - 1) * uint(10)
+        spp.svgStringBuilder.WriteString(fmt.Sprintf("  <line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" style=\"stroke:rgb(184,115,51);stroke-width:%d\"/>\n", x1, y1, x2, y2, width))
+    }
+
+    // Lay out the notes.
+    for i1 := numGStringsInPattern; i1 >= 1; i1-- {
+        for f, note := range p.gStringPatterns[i1 - 1].notes {
+            if note != nil {
+                noteRepresentation := spp.noteRepresentations[note.stepsAwayFromRootNote]
+                width := uint(4) * uint(len(noteRepresentation))
+                height := uint(8)
+                x := uint(10) + uint(f) * uint(15) + uint(15) / uint(2)
+                y := (spp.numPatterns + 1) * uint(20) + (spp.numGStringGaps + uint(numGStringsInPattern - i1)) * uint(10)
+                spp.svgStringBuilder.WriteString(fmt.Sprintf("  <text x=\"%d\" y=\"%d\" textLength=\"%d\" lengthAdjust=\"spacingAndGlyphs\" alignment-baseline=\"middle\" style=\"fill:rgb(71,140,204);text-anchor:middle;font-size:%d\">%s</text>\n", x, y, width, height, noteRepresentation))
+            }
+        }
+    }
+
+    spp.numGStringGaps += uint(numGStringsInPattern - 1)
+    spp.numPatterns++
+}
+
+func (spp *svgPatternPrinter) pprint() {
+    width := 2 * uint(10) + spp.maxFretsInPattern * uint(15)
+    height := (spp.numPatterns + 1) * uint(20) + spp.numGStringGaps * uint(10)
+
+    fmt.Printf("<svg width=\"%d\" height=\"%d\">\n", width, height)
+    fmt.Printf(spp.svgStringBuilder.String())
+    fmt.Printf("</svg>\n")
+}
+
+func (spp *svgPatternPrinter) reset() {
+    spp.svgStringBuilder.Reset()
+    spp.numPatterns = 0
+    spp.numGStringGaps = 0
 }
 
 func cumSum(arr uintslice) uintslice {
@@ -327,6 +409,8 @@ var aliasedRoot uint
 
 var numFretsPerPattern uint
 
+var printSvg bool
+
 func main() {
 
     flag.Var(&noteRepresentations, "n", "the textual representations of the notes as an ordered list of strings, starting from the representation of the un-aliased (i.e. absolute) root note. equals " + fmt.Sprintf("%v", defaultNoteRepresentations) + " if not specified.") 
@@ -338,6 +422,9 @@ func main() {
     flag.UintVar(&aliasedRoot, "r", uint(0), "the number of steps away from the absolute root to treat as the temporary root. by default, there is no aliasing.")
 
     flag.UintVar(&numFretsPerPattern, "frets", uint(4), "the number of frets per pattern")
+
+    flag.BoolVar(&printSvg, "svg", false, "whether to print in SVG format")
+
     flag.Parse()
 
     if len(noteRepresentations) == 0 {
@@ -361,8 +448,12 @@ func main() {
     sequenceNotes = unique(sequenceNotes)
     addMod(sequenceNotes, aliasedRoot, uint(numNotes))
 
-    pf := newAsciiPatternPrinter(noteRepresentations)
-
+    var pp patternPrinter
+    if printSvg {
+        pp = newSvgPatternPrinter(noteRepresentations, numFretsPerPattern)
+    } else {
+        pp = newAsciiPatternPrinter(noteRepresentations)
+    }
     var lastAcceptedPattern *pattern = nil
     
     for referenceFretOffset := 0; referenceFretOffset < numNotes; referenceFretOffset++ {
@@ -393,7 +484,9 @@ func main() {
         acceptPattern := pattern.leftAligned() && (pattern.rightAligned() || lastAcceptedPattern == nil || !pattern.rtrim().subPatternOf(lastAcceptedPattern))
         if acceptPattern {
             lastAcceptedPattern = pattern
-            pf.pprint(pattern)
+            pp.accept(pattern)
         }
     }
+    pp.pprint()
+    pp.reset()
 }

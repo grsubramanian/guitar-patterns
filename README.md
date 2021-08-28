@@ -6,6 +6,13 @@
 $ go build -o bin/ cmd/main.go
 ```
 
+## Available printers
+
+All printers write to STDOUT.
+
+ * ASCII (default)
+ * SVG (when run with `-svg`)
+
 ## Use cases
 
 **Simple chord - e.g. minor chord**
