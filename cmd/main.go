@@ -40,7 +40,6 @@ func (s *stringslice) Set(value string) error {
     return nil
 }
 
- 
 func cumSum(arr uintslice) uintslice {
     out := make(uintslice, 0)
     out = append(out, 0)
@@ -101,103 +100,103 @@ func reversed(arr stringslice) stringslice {
     return arr
 }
 
-func paddedNotes(notes stringslice) stringslice {
+func getPadded(noteRepresentations stringslice) stringslice {
 
     maxNoteLen := 0
-    for _, note := range notes {
-        noteLen := len(note)
-        if noteLen > maxNoteLen {
-            maxNoteLen = noteLen
+    for _, noteRepresentation := range noteRepresentations {
+        noteRepresentationLen := len(noteRepresentation)
+        if noteRepresentationLen > maxNoteLen {
+            maxNoteLen = noteRepresentationLen
         }
     }
 
     out := make(stringslice, 0)
-    for _, note := range notes {
-        noteLen := len(note)
-        var paddedNote string
-        if noteLen == maxNoteLen {
-            paddedNote = note
+    for _, noteRepresentation := range noteRepresentations {
+        noteRepresentationLen := len(noteRepresentation)
+        var paddedNoteRepresentation string
+        if noteRepresentationLen == maxNoteLen {
+            paddedNoteRepresentation = noteRepresentation
         } else {
-            leftPadding := (maxNoteLen - noteLen) / 2
-            rightPadding := maxNoteLen - noteLen - leftPadding
-            paddedNote = strings.Repeat("-", leftPadding) + note + strings.Repeat("-", rightPadding) 
+            leftPadding := (maxNoteLen - noteRepresentationLen) / 2
+            rightPadding := maxNoteLen - noteRepresentationLen - leftPadding
+            paddedNoteRepresentation = strings.Repeat("-", leftPadding) + noteRepresentation + strings.Repeat("-", rightPadding) 
         }
-        out = append(out, paddedNote)
+        out = append(out, paddedNoteRepresentation)
     }
     return out
 }
 
-var notes stringslice
-var defaultNotes = stringslice{"1", "b2", "2", "b3", "3", "4", "#4", "5", "b6", "6", "b7", "7"}
+var noteRepresentations stringslice
+var defaultNoteRepresentations = stringslice{"1", "b2", "2", "b3", "3", "4", "#4", "5", "b6", "6", "b7", "7"}
 
-var stringSteps uintslice
-var defaultStringSteps = uintslice{5, 5, 5, 4, 5}
+var stepsBetweenConsecutiveGStrings uintslice
+var defaultStepsBetweenConsecutiveGStrings = uintslice{5, 5, 5, 4, 5}
 
-var chordSteps uintslice
+var stepsBetweenConsecutiveNotesInSequence uintslice
 
 var numFretsPerPattern uint
 
 func main() {
 
-    flag.Var(&notes, "n", "the names of the notes represented as an ordered list of strings, starting from the name of the root note. equals " + fmt.Sprintf("%v", defaultNotes) + " if not specified.") 
+    flag.Var(&noteRepresentations, "n", "the textual representations of the notes as an ordered list of strings, starting from the representation of the root note. equals " + fmt.Sprintf("%v", defaultNoteRepresentations) + " if not specified.") 
     
-    flag.Var(&stringSteps, "ss", "the tuning represented as an ordered list of non-negative integers. each value represents the step jump from previous frequency string. first value represents jump from the lowest frequency string. equals " + fmt.Sprintf("%v", defaultStringSteps) + " if not specified.")
+    flag.Var(&stepsBetweenConsecutiveGStrings, "ss", "the tuning represented as an ordered list of non-negative integers. each value represents the step jump from previous frequency string. first value represents jump from the lowest frequency string. equals " + fmt.Sprintf("%v", defaultStepsBetweenConsecutiveGStrings) + " if not specified.")
     
-    flag.Var(&chordSteps, "s", "each value represents the step jumps from the previous note in the chord. first value represents jump from the root note. must specify explicitly.")
+    flag.Var(&stepsBetweenConsecutiveNotesInSequence, "s", "each value represents the step jumps from the previous note in the sequence (chord or scale). first value represents jump from the root note. must specify explicitly.")
     
     flag.UintVar(&numFretsPerPattern, "frets", uint(4), "the number of frets per pattern")
     flag.Parse()
 
-    if len(notes) == 0 {
-        notes = defaultNotes
+    if len(noteRepresentations) == 0 {
+        noteRepresentations = defaultNoteRepresentations
     }
-    paddedNotes := paddedNotes(notes)
-    emptyFret := strings.Repeat("-", len(paddedNotes[0]))
-    numNotes := len(paddedNotes)
+    paddedNoteRepresentations := getPadded(noteRepresentations)
+    emptyNoteRepresentation := strings.Repeat("-", len(paddedNoteRepresentations[0]))
+    numNotes := len(paddedNoteRepresentations)
 
-    if len(stringSteps) == 0 {
-        stringSteps = defaultStringSteps
+    if len(stepsBetweenConsecutiveGStrings) == 0 {
+        stepsBetweenConsecutiveGStrings = defaultStepsBetweenConsecutiveGStrings
     }
-    cumStringSteps := cumSum(stringSteps)
-    numStrings := len(cumStringSteps)
+    stepsAwayFromLowestFrequencyGString := cumSum(stepsBetweenConsecutiveGStrings)
+    numGStrings := len(stepsAwayFromLowestFrequencyGString)
 
-    if len(chordSteps) == 0 {
+    if len(stepsBetweenConsecutiveNotesInSequence) == 0 {
         flag.PrintDefaults()
         os.Exit(1)
     }
-    cumChordSteps := cumSumMod(chordSteps, uint(numNotes))
-    sort.Sort(cumChordSteps)
-    cumChordSteps = unique(cumChordSteps)
+    sequenceNotes := cumSumMod(stepsBetweenConsecutiveNotesInSequence, uint(numNotes))
+    sort.Sort(sequenceNotes)
+    sequenceNotes = unique(sequenceNotes)
 
-    for _, chordStepOnTopString := range cumChordSteps {
+    for _, sequenceNoteOnLowestFrequencyGString := range sequenceNotes {
         // fret on top string, but 1-indexed to avoid uint underflow.
-        for fret1OnTopString := numFretsPerPattern; fret1OnTopString >= 1; fret1OnTopString-- {
-            fretOnTopString := fret1OnTopString - 1
-            stringPatterns := make([]string, 0)
-            for stringNum := 0; stringNum < numStrings; stringNum++ {
+        for referenceFretNumOnLowestFrequencyGString_1 := numFretsPerPattern; referenceFretNumOnLowestFrequencyGString_1 >= 1; referenceFretNumOnLowestFrequencyGString_1-- {
+            referenceFretNumOnLowestFrequencyGString := referenceFretNumOnLowestFrequencyGString_1 - 1
+            gStringPatterns := make([]string, 0)
+            for gStringNum := 0; gStringNum < numGStrings; gStringNum++ {
                 var sb strings.Builder
                 sb.WriteString("|")
 
                 // The following two nested for loops can in theory be optimized wrt runtime complexity,
                 // but it's not worth it.
-                for fretOnCurString := uint(0); fretOnCurString < numFretsPerPattern; fretOnCurString++ {
-                    stepsAwayFromRoot := (int(cumStringSteps[stringNum] + fretOnCurString + chordStepOnTopString) - int(fretOnTopString)) % numNotes
-                    if stepsAwayFromRoot < 0 {
-                        stepsAwayFromRoot = numNotes + stepsAwayFromRoot
+                for fretNumOnCurrentString := uint(0); fretNumOnCurrentString < numFretsPerPattern; fretNumOnCurrentString++ {
+                    stepsAwayFromRootNote := (int(stepsAwayFromLowestFrequencyGString[gStringNum] + fretNumOnCurrentString + sequenceNoteOnLowestFrequencyGString) - int(referenceFretNumOnLowestFrequencyGString)) % numNotes
+                    if stepsAwayFromRootNote < 0 {
+                        stepsAwayFromRootNote = numNotes + stepsAwayFromRootNote
                     }
                     
                     sb.WriteString("-")
-                    if search(cumChordSteps, uint(stepsAwayFromRoot)) >= 0 {
-                        sb.WriteString(paddedNotes[stepsAwayFromRoot])
+                    if search(sequenceNotes, uint(stepsAwayFromRootNote)) >= 0 {
+                        sb.WriteString(paddedNoteRepresentations[stepsAwayFromRootNote])
                     } else {
-                        sb.WriteString(emptyFret)    
+                        sb.WriteString(emptyNoteRepresentation)    
                     }
                     sb.WriteString("-|")
                 }
-                stringPatterns = append(stringPatterns, sb.String())
+                gStringPatterns = append(gStringPatterns, sb.String())
             }
-            stringPatterns = reversed(stringPatterns)
-            fmt.Printf("%s\n\n", strings.Join(stringPatterns, "\n"))
+            gStringPatterns = reversed(gStringPatterns)
+            fmt.Printf("%s\n\n", strings.Join(gStringPatterns, "\n"))
         }
     }
 }
