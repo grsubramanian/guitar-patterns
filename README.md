@@ -1,5 +1,7 @@
 # Tool to generate chord and scale shapes for any uniformly fretted instrument for any musical system
 
+<img src="./resources/minor_chord_example.svg">
+
 ## Building
 
 ```
