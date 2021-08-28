@@ -48,6 +48,13 @@ func newNote(stepsAwayFromRootNote uint) *note {
     return &note{stepsAwayFromRootNote: stepsAwayFromRootNote}
 }
 
+func (n *note) equals(other *note) bool {
+    if other == nil {
+        return false
+    }
+    return n.stepsAwayFromRootNote == other.stepsAwayFromRootNote
+}
+
 type gStringPattern struct {
     notes []*note
 }
@@ -60,6 +67,25 @@ func (gsp *gStringPattern) add(n *note) {
     gsp.notes = append(gsp.notes, n)
 }
 
+func (gsp *gStringPattern) leftAligned() bool {
+    return len(gsp.notes) > 0 && gsp.notes[0] != nil
+}
+
+func (gsp *gStringPattern) rightAligned() bool {
+    return len(gsp.notes) > 0 && gsp.notes[len(gsp.notes) - 1] != nil
+}
+
+func (gsp *gStringPattern) trailingEmptyFrets() int {
+    out := 0
+    for i := len(gsp.notes) - 1; i >= 0; i-- {
+        if gsp.notes[i] != nil {
+            break
+        }
+        out += 1
+    }
+    return out
+}
+
 type pattern struct {
     gStringPatterns []*gStringPattern
 }
@@ -70,6 +96,88 @@ func newPattern() *pattern {
 
 func (p *pattern) add(gsp *gStringPattern) {
     p.gStringPatterns = append(p.gStringPatterns, gsp)
+}
+
+func (p *pattern) leftAligned() bool {
+    for _, gsp := range p.gStringPatterns {
+        if gsp.leftAligned() {
+            return true
+        }
+    }
+    return false
+}
+
+func (p *pattern) rightAligned() bool {
+    for _, gsp := range p.gStringPatterns {
+        if gsp.rightAligned() {
+            return true
+        }
+    }
+    return false
+}
+
+func (p *pattern) rtrim() *pattern {
+    minTrailingEmptyFrets := -1
+    for _, gsp := range p.gStringPatterns {
+        trailingEmptyFrets := gsp.trailingEmptyFrets()
+        if minTrailingEmptyFrets < 0 || trailingEmptyFrets < minTrailingEmptyFrets {
+            minTrailingEmptyFrets = trailingEmptyFrets
+        }
+    }
+    for _, gsp := range p.gStringPatterns {
+        gsp.notes = gsp.notes[0:len(gsp.notes) - minTrailingEmptyFrets]
+    }
+    return p
+}
+
+func (p *pattern) subPatternOf(other *pattern) bool {
+    if other == nil {
+        return false
+    }
+
+    numGStrings := len(p.gStringPatterns)
+    if numGStrings != len(other.gStringPatterns) {
+        return false
+    }
+
+    if numGStrings == 0 {
+        return true
+    }
+
+    numFretsInPattern := len(p.gStringPatterns[0].notes)
+    numFretsInOtherPattern := len(other.gStringPatterns[0].notes)
+    if numFretsInPattern > numFretsInOtherPattern {
+        return false
+    }
+
+    // TODO: Implement KMP if really necessary.
+    j := 0
+    for i := 0; i <= numFretsInOtherPattern - numFretsInPattern; i++ {
+        matchFound := true
+        for j < numFretsInPattern {
+            notesOnAllGStringsForSameFretMatch := true
+            for k := 0; k < numGStrings; k++ {
+                note := p.gStringPatterns[k].notes[j]
+                othernote := other.gStringPatterns[k].notes[i + j]
+                notesmatch := (note == nil && othernote == nil) || (note != nil && note.equals(othernote))
+                if !notesmatch {
+                    notesOnAllGStringsForSameFretMatch = false
+                    break
+                }
+            }
+            if !notesOnAllGStringsForSameFretMatch {
+                matchFound = false
+                break
+            }
+            j++
+        }
+        if matchFound {
+            return true
+        } else {
+            j = 0
+        }
+    }
+    return false
 }
 
 type patternPrinter interface {
@@ -242,29 +350,36 @@ func main() {
 
     pf := newAsciiPatternPrinter(noteRepresentations)
 
-    for _, sequenceNoteOnLowestFrequencyGString := range sequenceNotes {
-        // fret on top string, but 1-indexed to avoid uint underflow.
-        for referenceFretNumOnLowestFrequencyGString_1 := numFretsPerPattern; referenceFretNumOnLowestFrequencyGString_1 >= 1; referenceFretNumOnLowestFrequencyGString_1-- {
-            referenceFretNumOnLowestFrequencyGString := referenceFretNumOnLowestFrequencyGString_1 - 1
+    var lastAcceptedPattern *pattern = nil
+    
+    for referenceFretOffset := 0; referenceFretOffset < numNotes; referenceFretOffset++ {
+        rootNoteFretNumOnLowestFrequencyGString := int(numFretsPerPattern) - 1 - referenceFretOffset
 
-            pattern := newPattern()
-            for gStringNum := 0; gStringNum < numGStrings; gStringNum++ {
-                gStringPattern := newGStringPattern()
+        pattern := newPattern()
+        for gStringNum := 0; gStringNum < numGStrings; gStringNum++ {
+            gStringPattern := newGStringPattern()
 
-                for fretNumOnCurrentString := uint(0); fretNumOnCurrentString < numFretsPerPattern; fretNumOnCurrentString++ {
-                    stepsAwayFromRootNote := (int(stepsAwayFromLowestFrequencyGString[gStringNum] + fretNumOnCurrentString + sequenceNoteOnLowestFrequencyGString) - int(referenceFretNumOnLowestFrequencyGString)) % numNotes
-                    if stepsAwayFromRootNote < 0 {
-                        stepsAwayFromRootNote = numNotes + stepsAwayFromRootNote
-                    }
-                    
-                    if search(sequenceNotes, uint(stepsAwayFromRootNote)) >= 0 {
-                        gStringPattern.add(newNote(uint(stepsAwayFromRootNote)))
-                    } else {
-                        gStringPattern.add(nil)
-                    }
+            for fretNumOnCurrentString := uint(0); fretNumOnCurrentString < numFretsPerPattern; fretNumOnCurrentString++ {
+                stepsAwayFromRootNote := (int(stepsAwayFromLowestFrequencyGString[gStringNum] + fretNumOnCurrentString) - rootNoteFretNumOnLowestFrequencyGString) % numNotes
+                if stepsAwayFromRootNote < 0 {
+                    stepsAwayFromRootNote = numNotes + stepsAwayFromRootNote
                 }
-                pattern.add(gStringPattern)
+
+                if search(sequenceNotes, uint(stepsAwayFromRootNote)) >= 0 {
+                    gStringPattern.add(newNote(uint(stepsAwayFromRootNote)))
+                } else {
+                    gStringPattern.add(nil)
+                }
             }
+            pattern.add(gStringPattern)
+        }
+
+        // we'll only accept left aligned patterns.
+        // we'll expect that they not be a subpattern of another pattern, but given how we iterate, we only need to
+        // compare with the last accepted pattern.
+        acceptPattern := pattern.leftAligned() && (pattern.rightAligned() || lastAcceptedPattern == nil || !pattern.rtrim().subPatternOf(lastAcceptedPattern))
+        if acceptPattern {
+            lastAcceptedPattern = pattern
             pf.pprint(pattern)
         }
     }
