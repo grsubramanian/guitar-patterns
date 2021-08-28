@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 80 80">
-  <line x1="10" y1="20" x2="70" y2="20" style="stroke:rgb(190,190,190);stroke-width:1"/>
-  <line x1="10" y1="30" x2="70" y2="30" style="stroke:rgb(190,190,190);stroke-width:1"/>
-  <line x1="10" y1="40" x2="70" y2="40" style="stroke:rgb(190,190,190);stroke-width:1"/>
-  <line x1="10" y1="50" x2="70" y2="50" style="stroke:rgb(190,190,190);stroke-width:1"/>
-  <line x1="10" y1="60" x2="70" y2="60" style="stroke:rgb(190,190,190);stroke-width:1"/>
-  <line x1="10" y1="70" x2="70" y2="70" style="stroke:rgb(190,190,190);stroke-width:1"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 80 60">
+  <line x1="10" y1="5" x2="70" y2="20" style="stroke:rgb(190,190,190);stroke-width:1"/>
+  <line x1="10" y1="15" x2="70" y2="30" style="stroke:rgb(190,190,190);stroke-width:1"/>
+  <line x1="10" y1="25" x2="70" y2="40" style="stroke:rgb(190,190,190);stroke-width:1"/>
+  <line x1="10" y1="35" x2="70" y2="50" style="stroke:rgb(190,190,190);stroke-width:1"/>
+  <line x1="10" y1="45" x2="70" y2="60" style="stroke:rgb(190,190,190);stroke-width:1"/>
+  <line x1="10" y1="55" x2="70" y2="70" style="stroke:rgb(190,190,190);stroke-width:1"/>
   <line x1="10" y1="20" x2="10" y2="70" style="stroke:rgb(184,115,51);stroke-width:3"/>
   <line x1="25" y1="20" x2="25" y2="70" style="stroke:rgb(184,115,51);stroke-width:2"/>
   <line x1="40" y1="20" x2="40" y2="70" style="stroke:rgb(184,115,51);stroke-width:2"/>
