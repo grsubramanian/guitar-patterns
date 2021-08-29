@@ -2,20 +2,42 @@
 
 <img src="./resources/minor_chord_example.svg">
 
-## Building
+## Building the program
 
-```
-$ go build -o bin/ cmd/main.go
-```
+1. Install git on your system. See https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
 
-## Available printers
+2. Install the Go programming language on your system. See https://golang.org/doc/install.
 
-All printers write to STDOUT.
+3. Clone this repository. See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository.
 
- * ASCII (default)
- * SVG (when run with `-svg`)
+4. Go into the cloned directory, for example in Unix / Linux systems by running `cd guitar-chord-shapes`.
 
-## Use cases
+5. Build the program by running `go build -o bin/ cmd/main.go`.
+
+## Running the program
+
+### Basics
+
+To run the program, just type `./bin/main` with the appropriate command line arguments as will be shown below. This needs to be done from the command line terminal. If you have only used graphical interfaces in the past, this might sound daunting, but it is easy. There are several resources online.
+
+### Available printers
+
+The program will print output to STDOUT. In simple words, this means that the output will print to the screen.
+
+There are two output options available.
+
+ * ASCII (default) - lightweight for those who prefer to stay on the terminal.
+ * SVG (when run with `-svg`) - convenient because the SVG output can be converted to JPG or PNG using free converter tools available online.
+
+If you want the output to go to a file (which you will likely need when using the SVG option), you will need to redirect the output to the file such as `./bin/main -svg {some args} > somefileonthecomputer.svg`.
+
+### Accessibility options
+
+Run with the `-left` argument if you are left handed.
+
+### Use cases
+
+*All examples shown here print in ASCII and use right-handedness.*
 
 **Simple chord - e.g. minor chord**
 

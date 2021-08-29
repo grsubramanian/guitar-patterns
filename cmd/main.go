@@ -67,6 +67,15 @@ func (gsp *gStringPattern) add(n *note) {
     gsp.notes = append(gsp.notes, n)
 }
 
+func (gsp *gStringPattern) mirrored() *gStringPattern {
+
+    out := newGStringPattern()
+    for i := len(gsp.notes) - 1; i >= 0; i -- {
+        out.add(gsp.notes[i])
+    }
+    return out
+}
+
 func (gsp *gStringPattern) leftAligned() bool {
     return len(gsp.notes) > 0 && gsp.notes[0] != nil
 }
@@ -96,6 +105,14 @@ func newPattern() *pattern {
 
 func (p *pattern) add(gsp *gStringPattern) {
     p.gStringPatterns = append(p.gStringPatterns, gsp)
+}
+
+func (p *pattern) mirrored() *pattern {
+    out := newPattern()
+    for _, gsp := range p.gStringPatterns {
+        out.add(gsp.mirrored()) 
+    }
+    return out
 }
 
 func (p *pattern) leftAligned() bool {
@@ -409,6 +426,8 @@ var aliasedRoot uint
 
 var numFretsPerPattern uint
 
+var leftHanded bool
+
 var printSvg bool
 
 func main() {
@@ -422,6 +441,8 @@ func main() {
     flag.UintVar(&aliasedRoot, "r", uint(0), "the number of steps away from the absolute root to treat as the temporary root. by default, there is no aliasing.")
 
     flag.UintVar(&numFretsPerPattern, "frets", uint(4), "the number of frets per pattern")
+
+    flag.BoolVar(&leftHanded, "left", false, "format for lefties")
 
     flag.BoolVar(&printSvg, "svg", false, "whether to print in SVG format")
 
@@ -484,7 +505,11 @@ func main() {
         acceptPattern := pattern.leftAligned() && (pattern.rightAligned() || lastAcceptedPattern == nil || !pattern.rtrim().subPatternOf(lastAcceptedPattern))
         if acceptPattern {
             lastAcceptedPattern = pattern
-            pp.accept(pattern)
+            if leftHanded {
+                pp.accept(pattern.mirrored())
+            } else {
+                pp.accept(pattern)
+            }
         }
     }
     pp.pprint()
