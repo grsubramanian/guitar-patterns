@@ -4,15 +4,21 @@
 
 ## Building the program
 
-1. Install git on your system. See https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
+1. If not already done, install git on your system. See https://git-scm.com/book/en/v2/Getting-Started-Installing-Git.
 
-2. Install the Go programming language on your system. See https://golang.org/doc/install.
+2. If not already done, install the Go programming language on your system. See https://golang.org/doc/install.
 
-3. Clone this repository. See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository.
+3. If not already done, install the `goimports` tool by running `go install `
 
-4. Go into the cloned directory, for example in Unix / Linux systems by running `cd guitar-chord-shapes`.
+4. If not already done, install the `golint` tool by running `go install golang.org/x/lint/golint@latest`.
 
-5. Build the program by running `go build -o bin/ cmd/main.go`.
+5. If not already done, install `make`. The instructions can vary by OS and distribution.
+
+6. Clone this repository. See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository.
+
+7. Go into the cloned directory, for example in Unix / Linux systems by running `cd guitar-chord-shapes`.
+
+8. Build the program by running `make`. This will generate the binary at `./bin/main`.
 
 ## Running the program
 
