@@ -15,17 +15,16 @@ func (a uintslice) Len() int           { return len(a) }
 func (a uintslice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a uintslice) Less(i, j int) bool { return a[i] < a[j] }
 
-func (i *uintslice) String() string {
-	return fmt.Sprintf("%v", *i)
+func (a *uintslice) String() string {
+	return fmt.Sprintf("%v", *a)
 }
 
-func (i *uintslice) Set(value string) error {
+func (a *uintslice) Set(value string) error {
 	tmp, err := strconv.ParseUint(value, 10, 32)
 	if err != nil {
 		return err
-	} else {
-		*i = append(*i, uint(tmp))
 	}
+	*a = append(*a, uint(tmp))
 	return nil
 }
 
@@ -90,7 +89,7 @@ func (gsp *gStringPattern) trailingEmptyFrets() int {
 		if gsp.notes[i] != nil {
 			break
 		}
-		out += 1
+		out++
 	}
 	return out
 }
@@ -190,9 +189,8 @@ func (p *pattern) subPatternOf(other *pattern) bool {
 		}
 		if matchFound {
 			return true
-		} else {
-			j = 0
 		}
+		j = 0
 	}
 	return false
 }
@@ -209,7 +207,7 @@ type asciiPatternPrinter struct {
 	asciiStringBuilder        strings.Builder
 }
 
-func newAsciiPatternPrinter(noteRepresentations stringslice) patternPrinter {
+func newASCIIPatternPrinter(noteRepresentations stringslice) patternPrinter {
 	pp := &asciiPatternPrinter{}
 	paddedNoteRepresentations := getPadded(noteRepresentations)
 	emptyNoteRepresentation := strings.Repeat("-", len(paddedNoteRepresentations[0]))
@@ -371,7 +369,7 @@ func cumSumMod(arr uintslice, maxVal uint) uintslice {
 }
 
 func addMod(arr uintslice, toAdd uint, maxVal uint) {
-	for i, _ := range arr {
+	for i := range arr {
 		arr[i] += toAdd
 		arr[i] %= maxVal
 	}
@@ -473,7 +471,7 @@ func main() {
 	if printSvg {
 		pp = newSvgPatternPrinter(noteRepresentations, numFretsPerPattern)
 	} else {
-		pp = newAsciiPatternPrinter(noteRepresentations)
+		pp = newASCIIPatternPrinter(noteRepresentations)
 	}
 	var lastAcceptedPattern *pattern = nil
 
