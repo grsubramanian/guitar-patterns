@@ -16,7 +16,7 @@
 
 6. Clone this repository. See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository-from-github/cloning-a-repository.
 
-7. Go into the cloned directory, for example in Unix / Linux systems by running `cd guitar-chord-shapes`.
+7. Go into the cloned directory, for example in Unix / Linux systems by running `cd guitar-patterns`.
 
 8. Build the program by running `make`. This will generate the binary at `./bin/main`.
 
