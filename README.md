@@ -8,7 +8,7 @@
 
 2. If not already done, install the Go programming language on your system. See https://golang.org/doc/install.
 
-3. If not already done, install the `goimports` tool by running `go install `
+3. If not already done, install the `goimports` tool by running `go install golang.org/x/tools/cmd/goimports@latest`
 
 4. If not already done, install the `golint` tool by running `go install golang.org/x/lint/golint@latest`.
 
