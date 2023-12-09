@@ -335,7 +335,7 @@ func (spp *svgPatternPrinter) pprint() {
 	height := (spp.numPatterns+1)*uint(20) + spp.numGStringGaps*uint(10)
 
 	fmt.Printf("<svg width=\"%d\" height=\"%d\">\n", width, height)
-	fmt.Printf(spp.svgStringBuilder.String())
+	fmt.Print(spp.svgStringBuilder.String())
 	fmt.Printf("</svg>\n")
 }
 
@@ -402,16 +402,6 @@ func search(arr uintslice, tgt uint) int {
 	return -1
 }
 
-func reversed(arr stringslice) stringslice {
-	l := len(arr)
-	for i := 0; i < l/2; i++ {
-		temp := arr[i]
-		arr[i] = arr[l-1-i]
-		arr[l-1-i] = temp
-	}
-	return arr
-}
-
 var noteRepresentations stringslice
 var defaultNoteRepresentations = stringslice{"1", "b2", "2", "b3", "3", "4", "#4", "5", "b6", "6", "b7", "7"}
 
@@ -423,6 +413,8 @@ var stepsBetweenConsecutiveNotesInSequence uintslice
 var aliasedRoot uint
 
 var numFretsPerPattern uint
+
+var numMaxDesiredPatternVariants uint
 
 var leftHanded bool
 
@@ -439,6 +431,8 @@ func main() {
 	flag.UintVar(&aliasedRoot, "r", uint(0), "the number of steps away from the absolute root to treat as the temporary root. by default, there is no aliasing.")
 
 	flag.UintVar(&numFretsPerPattern, "frets", uint(4), "the number of frets per pattern")
+
+	flag.UintVar(&numMaxDesiredPatternVariants, "maxVariants", uint(0), "the maximum number of pattern variants desired. by default, creates a variant for each of the notes in the note representation.")
 
 	flag.BoolVar(&leftHanded, "left", false, "format for lefties")
 
@@ -475,6 +469,10 @@ func main() {
 	}
 	var lastAcceptedPattern *pattern = nil
 
+	if numMaxDesiredPatternVariants == 0 {
+		numMaxDesiredPatternVariants = uint(numNotes)
+	}
+	numAcceptedPatternVariants := uint(0)
 	for referenceFretOffset := 0; referenceFretOffset < numNotes; referenceFretOffset++ {
 		referenceNoteFretNumOnLowestFrequencyGString := int(numFretsPerPattern) - 1 - referenceFretOffset
 
@@ -507,6 +505,10 @@ func main() {
 				pp.accept(pattern.mirrored())
 			} else {
 				pp.accept(pattern)
+			}
+			numAcceptedPatternVariants++
+			if numAcceptedPatternVariants == numMaxDesiredPatternVariants {
+				break
 			}
 		}
 	}
